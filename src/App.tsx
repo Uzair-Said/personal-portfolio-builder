@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { NavLink, Route, Routes, useLocation, useParams } from 'react-router-dom'
-import { ArrowRight, BookOpen, ExternalLink, Mail, MapPin, Menu, Printer, X } from 'lucide-react'
+import { ArrowRight, ExternalLink, Mail, MapPin, Menu, Printer, X } from 'lucide-react'
 import './App.css'
 import { RichText } from './RichText'
 import { hasRichTextMarkup } from './richTextUtils'
@@ -95,8 +95,6 @@ function Home({ content }: { content: CmsContent }) {
             <div className="portrait-ring">
               <div className="portrait"><img src={content.settings.profile_image || '/Profile pic.png'} alt={content.settings.name || 'Profile'} /></div>
             </div>
-            <div className="floating-card research"><BookOpen size={20} /><span><strong>BCS</strong><small>Computer Science</small></span></div>
-            <div className="floating-card students"><strong>IT</strong><small>Support specialist</small></div>
           </div>
         </section>
 

@@ -22,12 +22,6 @@
 .portrait-ring { width: 380px; height: 380px; border: 1px solid #dce5dc; border-radius: 50%; display: grid; place-items: center; background: radial-gradient(circle, #edf3eb 0 48%, transparent 49%); }
 .portrait { width: 310px; height: 310px; border-radius: 50% 50% 46% 54%; background: linear-gradient(145deg, #d6e2d7, #91aaa1); display: grid; place-items: center; box-shadow: 0 24px 50px rgba(44,77,68,.14); }
 .portrait img { width: 100%; height: 100%; object-fit: cover; object-position: center 20%; border-radius: inherit; }
-.floating-card { position: absolute; background: rgba(255,255,255,.94); box-shadow: 0 12px 34px rgba(32,68,59,.12); border: 1px solid #edf1ec; }
-.floating-card.research { left: 0; bottom: 72px; min-width: 175px; height: 74px; border-radius: 5px; display: flex; align-items: center; gap: 12px; padding: 12px 16px; color: var(--green); }
-.floating-card.research span, .floating-card.students { display: flex; flex-direction: column; }
-.floating-card strong { color: var(--dark); font-size: 21px; }
-.floating-card small { color: #7a8984; font-size: 11px; }
-.floating-card.students { right: -5px; top: 66px; width: 128px; height: 128px; border-radius: 50%; align-items: center; justify-content: center; text-align: center; }
 .focus-section { max-width: 1180px; margin: auto; padding: 100px 24px 110px; border-top: 1px solid var(--line); }
 .section-heading { display: flex; justify-content: space-between; align-items: end; margin-bottom: 38px; }
 .section-heading h2, .about-strip h2 { color: var(--dark); font-family: Georgia, serif; font-size: 42px; line-height: 1.15; margin: 12px 0 0; font-weight: 500; }
@@ -162,10 +156,6 @@ body {
   object-position: center 24%;
   filter: saturate(.88) contrast(1.02);
 }
-
-.floating-card { backdrop-filter: blur(12px); }
-.floating-card.research { left: 2px; bottom: 48px; }
-.floating-card.students { right: -12px; top: 54px; }
 
 .focus-section {
   max-width: none;
@@ -438,8 +428,6 @@ body {
   .hero-visual::before { width: 330px; height: 330px; }
   .portrait-ring { width: 300px; height: 300px; }
   .portrait { width: 250px; height: 250px; }
-  .floating-card.research { bottom: 24px; }
-  .floating-card.students { top: 20px; right: -2px; }
   .section-heading { gap: 20px; }
   .project-art, .project-card.large .project-art { height: 280px; }
   .focus-grid.single-project .home-project-tile { flex-basis: min(300px, 82vw); }
