@@ -15,6 +15,11 @@ const isProduction = process.env.NODE_ENV === 'production'
 const jwtSecret = process.env.JWT_SECRET || (isProduction ? '' : 'local-development-secret-change-before-deploying')
 const adminEmail = process.env.ADMIN_EMAIL || (isProduction ? '' : 'admin@portfolio.local')
 const adminPassword = process.env.ADMIN_PASSWORD || (isProduction ? '' : 'ChangeMe123!')
+const smtpHost = process.env.SMTP_HOST
+const smtpPort = Number(process.env.SMTP_PORT || 587)
+const smtpUser = process.env.SMTP_USER
+const smtpPass = process.env.SMTP_PASS
+const smtpFrom = process.env.SMTP_FROM || smtpUser
 if (isProduction && (jwtSecret.length < 32 || !adminEmail || adminPassword.length < 12 || adminPassword === 'ChangeMe123!')) {
   throw new Error('Production requires a JWT_SECRET of at least 32 characters, ADMIN_EMAIL, and a unique ADMIN_PASSWORD of at least 12 characters')
 }
@@ -77,6 +82,7 @@ function seedSchema() {
       description TEXT,
       tech_stack TEXT,
       image TEXT,
+      gallery_images TEXT NOT NULL DEFAULT '[]',
       url TEXT,
       accent TEXT DEFAULT 'mint',
       position INTEGER NOT NULL DEFAULT 0,
@@ -144,15 +150,20 @@ function seedSchema() {
   if (!awardColumns.some((column) => column.name === 'award_file')) {
     db.exec('ALTER TABLE awards ADD COLUMN award_file TEXT')
   }
+  const projectColumns = db.prepare('PRAGMA table_info(projects)').all()
+  if (!projectColumns.some((column) => column.name === 'gallery_images')) {
+    db.exec("ALTER TABLE projects ADD COLUMN gallery_images TEXT NOT NULL DEFAULT '[]'")
+  }
 
   const settingCount = db.prepare('SELECT COUNT(*) AS count FROM settings').get().count
   if (!settingCount) {
     const settings = {
       name: 'Uzair Said',
       initials: 'US',
-      tagline: 'Computer Science Graduate · IT Support',
-      title: 'Technology with purpose. Solutions that work.',
-      description: 'I am Uzair Said, a Bachelor of Computer Science graduate from Abdul Wali Khan University Mardan with experience in IT support, web development, and digital service delivery.',
+      tagline: 'Computer Science Graduate | IT Support | Web Development',
+      title: 'Practical technology. Reliable support. Meaningful impact.',
+      description: 'I’m Uzair Said, a Computer Science graduate with experience in IT support, web development, and digital service delivery. I solve technical problems, support the people who rely on technology, and build practical tools that make everyday work easier.',
+      resume_summary: 'Computer Science graduate with practical experience in IT support, web development, and digital service delivery. Experienced in troubleshooting hardware and software, supporting enterprise ERP and citizen-service platforms, and building responsive web applications. Brings a user-focused approach, clear communication, and a commitment to reliable, effective solutions.',
       email: 'uzairsaid7@gmail.com',
       location: 'Mardan, Pakistan',
       profile_image: '/Profile pic.png',
@@ -169,7 +180,7 @@ function seedSchema() {
 
   if (!db.prepare('SELECT COUNT(*) AS count FROM sections').get().count) {
     const insert = db.prepare('INSERT INTO sections (key, eyebrow, title, description, content, position) VALUES (?, ?, ?, ?, ?, ?)')
-    insert.run('hero', 'Computer Science Graduate · IT Support', 'Technology with purpose. Solutions that work.', 'I am Uzair Said, a Bachelor of Computer Science graduate from Abdul Wali Khan University Mardan with experience in IT support, web development, and digital service delivery.', '', 1)
+    insert.run('hero', 'Computer Science Graduate | IT Support | Web Development', 'Practical technology. Reliable support. Meaningful impact.', 'I’m Uzair Said, a Computer Science graduate with experience in IT support, web development, and digital service delivery. I solve technical problems, support the people who rely on technology, and build practical tools that make everyday work easier.', '', 1)
     insert.run('featured-project', 'Featured project', 'Building reliable digital experiences', 'A selection of my software project work.', '', 2)
     insert.run('about', 'About this portfolio', 'Combining technical support with practical software development.', 'My experience covers hardware and software troubleshooting, citizen-facing digital platforms, React development, and cloud-enabled application projects.', '', 3)
   }
@@ -247,6 +258,28 @@ function setSettings(body) {
   tx(body)
 }
 
+function syncHeroSectionFromSettings(settings) {
+  const hero = db.prepare('SELECT * FROM sections WHERE key = ? ORDER BY id ASC LIMIT 1').get('hero')
+  if (!hero) return
+
+  db.prepare('UPDATE sections SET eyebrow = ?, title = ?, description = ? WHERE id = ?').run(
+    Object.hasOwn(settings, 'tagline') ? String(settings.tagline ?? '') : hero.eyebrow,
+    Object.hasOwn(settings, 'title') ? String(settings.title ?? '') : hero.title,
+    Object.hasOwn(settings, 'description') ? String(settings.description ?? '') : hero.description,
+    hero.id,
+  )
+}
+
+function syncSettingsFromHeroSection(section) {
+  if (section.key !== 'hero') return
+
+  const settings = {}
+  if (section.eyebrow !== undefined) settings.tagline = section.eyebrow
+  if (section.title !== undefined) settings.title = section.title
+  if (section.description !== undefined) settings.description = section.description
+  setSettings(settings)
+}
+
 function requireAuth(req, res, next) {
   const header = req.headers.authorization || ''
   const token = header.startsWith('Bearer ') ? header.slice(7) : ''
@@ -278,6 +311,44 @@ app.post('/api/auth/change-password', requireAuth, (req, res) => {
   res.json({ success: true })
 })
 
+app.post('/api/contact', async (req, res) => {
+  const name = typeof req.body?.name === 'string' ? req.body.name.trim() : ''
+  const email = typeof req.body?.email === 'string' ? req.body.email.trim() : ''
+  const message = typeof req.body?.message === 'string' ? req.body.message.trim() : ''
+  const honeypot = typeof req.body?.website === 'string' ? req.body.website.trim() : ''
+
+  if (honeypot) return res.status(400).json({ error: 'Unable to send message' })
+  if (!name || name.length > 120) return res.status(400).json({ error: 'Name is required and must be 120 characters or fewer' })
+  if (!email || email.length > 254 || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ error: 'Enter a valid email address' })
+  }
+  if (!message || message.length > 10000) return res.status(400).json({ error: 'Message is required and must be 10,000 characters or fewer' })
+  if (!smtpHost || !smtpUser || !smtpPass || !smtpFrom || !Number.isInteger(smtpPort) || smtpPort < 1 || smtpPort > 65535) {
+    return res.status(503).json({ error: 'Email delivery is not configured. Please contact the site owner directly.' })
+  }
+
+  try {
+    const nodemailer = require('nodemailer')
+    const transporter = nodemailer.createTransport({
+      host: smtpHost,
+      port: smtpPort,
+      secure: process.env.SMTP_SECURE === 'true',
+      auth: { user: smtpUser, pass: smtpPass },
+    })
+    await transporter.sendMail({
+      from: smtpFrom,
+      to: 'uzairsaid7@gmail.com',
+      replyTo: { name, address: email },
+      subject: `Portfolio contact from ${name}`,
+      text: `Name: ${name}\nEmail: ${email}\n\n${message}`,
+    })
+    res.json({ success: true })
+  } catch (error) {
+    console.error('Contact email delivery failed:', error)
+    res.status(502).json({ error: 'Your message could not be sent right now. Please try again later.' })
+  }
+})
+
 app.get('/api/content', (_req, res) => {
   const all = (table) => db.prepare(`SELECT * FROM ${table} WHERE enabled = 1 ORDER BY position ASC, id ASC`).all()
   res.json({
@@ -295,6 +366,7 @@ app.get('/api/content', (_req, res) => {
 
 app.put('/api/settings', requireAuth, (req, res) => {
   setSettings(req.body)
+  syncHeroSectionFromSettings(req.body)
   res.json({ settings: getSettings() })
 })
 
@@ -310,7 +382,9 @@ for (const table of crudTables) {
     if (!keys.length) return res.status(400).json({ error: 'No fields supplied' })
     const sql = `INSERT INTO ${table} (${keys.join(', ')}) VALUES (${keys.map(() => '?').join(', ')})`
     const result = db.prepare(sql).run(...keys.map((key) => data[key]))
-    res.status(201).json(db.prepare(`SELECT * FROM ${table} WHERE id = ?`).get(result.lastInsertRowid))
+    const row = db.prepare(`SELECT * FROM ${table} WHERE id = ?`).get(result.lastInsertRowid)
+    if (table === 'sections') syncSettingsFromHeroSection(row)
+    res.status(201).json(row)
   })
   app.put(`/api/admin/${table}/:id`, requireAuth, (req, res) => {
     const data = { ...req.body }
@@ -319,7 +393,9 @@ for (const table of crudTables) {
     if (!keys.length) return res.status(400).json({ error: 'No fields supplied' })
     const sql = `UPDATE ${table} SET ${keys.map((key) => `${key} = ?`).join(', ')} WHERE id = ?`
     db.prepare(sql).run(...keys.map((key) => data[key]), Number(req.params.id))
-    res.json(db.prepare(`SELECT * FROM ${table} WHERE id = ?`).get(Number(req.params.id)))
+    const row = db.prepare(`SELECT * FROM ${table} WHERE id = ?`).get(Number(req.params.id))
+    if (table === 'sections' && row) syncSettingsFromHeroSection(row)
+    res.json(row)
   })
   app.delete(`/api/admin/${table}/:id`, requireAuth, (req, res) => {
     db.prepare(`DELETE FROM ${table} WHERE id = ?`).run(Number(req.params.id))

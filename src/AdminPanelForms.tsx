@@ -3,6 +3,7 @@ import type { FormEvent } from 'react'
 import { LayoutDashboard, LogOut, Menu, Settings, BriefcaseBusiness, GraduationCap, Award, BadgeCheck, FolderKanban, ListTree, Wrench, Upload } from 'lucide-react'
 import Cropper from 'react-easy-crop'
 import type { Area, Point } from 'react-easy-crop'
+import { RichTextEditor } from './RichTextEditor'
 import './AdminPanel.css'
 
 const tabs = [
@@ -30,8 +31,8 @@ const fields: Record<string, Field[]> = {
     { key: 'name', label: 'Website owner name' },
     { key: 'initials', label: 'Brand initials' },
     { key: 'tagline', label: 'Professional tagline' },
-    { key: 'title', label: 'Hero title' },
-    { key: 'description', label: 'About / hero description', type: 'textarea' },
+    { key: 'title', label: 'Homepage hero title' },
+    { key: 'description', label: 'Homepage hero description', type: 'textarea' },
     { key: 'resume_summary', label: 'Resume professional summary', type: 'textarea' },
     { key: 'email', label: 'Contact email', type: 'email' },
     { key: 'phone', label: 'Phone number' },
@@ -62,7 +63,7 @@ const fields: Record<string, Field[]> = {
     { key: 'year', label: 'Year or date range' },
     { key: 'description', label: 'Project description', type: 'textarea' },
     { key: 'tech_stack', label: 'Project tags', type: 'tags', placeholder: 'Add a tag, e.g. React' },
-    { key: 'image', label: 'Project image URL' },
+    { key: 'image', label: 'Project thumbnail URL' },
     { key: 'url', label: 'Live project or repository link', type: 'url' },
     { key: 'accent', label: 'Card colour', type: 'select', options: ['mint', 'blue', 'gold', 'coral'] },
     { key: 'position', label: 'Display position', type: 'number' },
@@ -118,15 +119,28 @@ const fields: Record<string, Field[]> = {
 }
 
 const templates: Record<string, Record<string, unknown>> = Object.fromEntries(
-  Object.entries(fields).map(([key, fieldList]) => [key, Object.fromEntries(fieldList.map((field) => [
-    field.key,
-    field.type === 'checkbox' ? 1 : field.type === 'number' ? 1 : '',
-  ]))]),
+  Object.entries(fields).map(([key, fieldList]) => [key, {
+    ...Object.fromEntries(fieldList.map((field) => [
+      field.key,
+      field.type === 'checkbox' ? 1 : field.type === 'number' ? 1 : '',
+    ])),
+    ...(key === 'projects' ? { gallery_images: '[]' } : {}),
+  }]),
 )
 
 function recordTitle(row: Record<string, unknown>) {
   const key = ['title', 'label', 'name', 'role', 'degree', 'key'].find((candidate) => row[candidate])
   return key ? String(row[key]) : 'Untitled record'
+}
+
+function parseGalleryImages(value: unknown): string[] {
+  if (typeof value !== 'string' || !value) return []
+  try {
+    const images: unknown = JSON.parse(value)
+    return Array.isArray(images) ? images.filter((image): image is string => typeof image === 'string' && image.length > 0) : []
+  } catch {
+    return []
+  }
 }
 
 export default function AdminPanelForms() {
@@ -140,6 +154,7 @@ export default function AdminPanelForms() {
   const [draft, setDraft] = useState<Record<string, unknown>>({ ...templates.settings })
   const [message, setMessage] = useState('')
   const [cropImage, setCropImage] = useState<string | null>(null)
+  const [cropTarget, setCropTarget] = useState<'profile' | 'project-thumbnail'>('profile')
   const [crop, setCrop] = useState<Point>({ x: 0, y: 0 })
   const [zoom, setZoom] = useState(1)
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null)
@@ -229,11 +244,12 @@ export default function AdminPanelForms() {
     }
   }
 
-  const openCropper = (file: File) => {
+  const openCropper = (file: File, target: 'profile' | 'project-thumbnail') => {
     if (cropImage) URL.revokeObjectURL(cropImage)
     setCrop({ x: 0, y: 0 })
     setZoom(1)
     setCroppedAreaPixels(null)
+    setCropTarget(target)
     setCropImage(URL.createObjectURL(file))
   }
 
@@ -246,8 +262,8 @@ export default function AdminPanelForms() {
       const response = await fetch('/api/admin/upload', { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body: form })
       const data = await response.json()
       if (!response.ok) throw new Error(data.error || 'Upload failed')
-      setField(active === 'settings' ? 'profile_image' : 'image', data.url)
-      setMessage('Cropped image uploaded')
+      setField(cropTarget === 'profile' ? 'profile_image' : 'image', data.url)
+      setMessage(cropTarget === 'profile' ? 'Cropped profile image uploaded' : 'Cropped project thumbnail uploaded')
       URL.revokeObjectURL(cropImage)
       setCropImage(null)
     } catch (error) {
@@ -258,6 +274,41 @@ export default function AdminPanelForms() {
   const cancelCrop = () => {
     if (cropImage) URL.revokeObjectURL(cropImage)
     setCropImage(null)
+  }
+
+  const projectGallery = parseGalleryImages(draft.gallery_images)
+
+  const uploadProjectImages = async (files: File[]) => {
+    const uploaded: string[] = []
+    const failed: string[] = []
+    for (const file of files) {
+      try {
+        const form = new FormData()
+        form.append('file', file)
+        const response = await fetch('/api/admin/upload', {
+          method: 'POST',
+          headers: { Authorization: `Bearer ${token}` },
+          body: form,
+        })
+        const data = await response.json()
+        if (!response.ok) throw new Error(data.error || 'Upload rejected')
+        uploaded.push(data.url)
+      } catch (error) {
+        const reason = error instanceof Error ? error.message : 'Unknown upload error'
+        failed.push(`${file.name}: ${reason}`)
+      }
+    }
+
+    if (uploaded.length) {
+      setField('gallery_images', JSON.stringify([...projectGallery, ...uploaded]))
+    }
+    const completedMessage = `${uploaded.length} project image${uploaded.length === 1 ? '' : 's'} uploaded.`
+    if (!uploaded.length && failed.length) {
+      setMessage(`Project image upload failed: ${failed.join('; ')}`)
+      return
+    }
+    const failedMessage = failed.length ? ` Failed: ${failed.join('; ')}.` : ''
+    setMessage(`${completedMessage}${failedMessage} Save the project to publish uploaded images.`)
   }
 
   const uploadCertificate = async (file: File) => {
@@ -309,22 +360,22 @@ export default function AdminPanelForms() {
       <aside className="admin-sidebar"><div className="admin-brand"><span>US</span><div><strong>Portfolio CMS</strong><small>Uzair Said</small></div></div><nav>{tabs.map((tab) => { const Icon = tab.icon; return <button className={active === tab.key ? 'active' : ''} key={tab.key} onClick={() => setActive(tab.key)}><Icon size={17} />{tab.label}</button> })}</nav><button className="admin-logout" onClick={() => { localStorage.removeItem('cms_token'); setToken('') }}><LogOut size={16} />Sign out</button></aside>
       <main className="admin-main"><header className="admin-header"><div><span>Management</span><h1>{tabs.find((tab) => tab.key === active)?.label}</h1></div>{active !== 'settings' && <button className="admin-new" onClick={createDraft}>+ Add new</button>}</header>{message && <div className="admin-message">{message}</div>}
         {active === 'settings' ? (
-          <section className="admin-editor admin-editor-wide"><h2>Website settings</h2><p>Update the general content shown throughout the public website.</p><div className="admin-fields">{visibleFields.map((field) => <AdminField key={field.key} field={field} value={draft[field.key]} onChange={(value) => setField(field.key, value)} />)}</div>{(active === 'settings' || active === 'projects') && <label className="admin-image-upload"><Upload size={16} />Upload image<input type="file" accept="image/*" onChange={(event) => event.target.files?.[0] && openCropper(event.target.files[0])} /></label>}<div className="admin-actions"><button onClick={save}>Save settings</button></div></section>
+          <section className="admin-editor admin-editor-wide"><h2>Website settings</h2><p>Update the general content shown throughout the public website.</p><div className="admin-fields">{visibleFields.map((field) => <AdminField key={field.key} field={field} value={draft[field.key]} onChange={(value) => setField(field.key, value)} />)}</div><label className="admin-image-upload"><Upload size={16} />Upload profile image<input type="file" accept="image/*" onChange={(event) => event.target.files?.[0] && openCropper(event.target.files[0], 'profile')} /></label><div className="admin-actions"><button onClick={save}>Save settings</button></div></section>
         ) : (
-          <div className="admin-grid"><section className="admin-list"><h2>Records</h2>{rows.map((row) => <button key={String(row.id)} className={selected?.id === row.id ? 'active' : ''} onClick={() => chooseRow(row)}><strong>{recordTitle(row)}</strong><small>{String(row.category || row.organization || row.institution || row.issuer || row.path || '')}</small></button>)}{!rows.length && <p className="admin-empty">No records yet.</p>}</section><section className="admin-editor"><h2>{selected ? 'Edit record' : 'Create record'}</h2><div className="admin-fields">{visibleFields.map((field) => <AdminField key={field.key} field={field} value={draft[field.key]} onChange={(value) => setField(field.key, value)} />)}</div>{active === 'projects' && <label className="admin-image-upload"><Upload size={16} />Upload project image<input type="file" accept="image/*" onChange={(event) => event.target.files?.[0] && openCropper(event.target.files[0])} /></label>}{active === 'certifications' && <div className="certificate-upload"><label className="admin-image-upload"><Upload size={16} />Upload certificate<input type="file" accept=".pdf,image/*" onChange={(event) => event.target.files?.[0] && uploadCertificate(event.target.files[0])} /></label>{typeof draft.certificate_file === 'string' && draft.certificate_file && <div className="certificate-current"><a href={draft.certificate_file} target="_blank" rel="noreferrer">View uploaded certificate</a><button type="button" onClick={() => setField('certificate_file', '')}>Remove</button></div>}</div>}{active === 'awards' && <div className="certificate-upload"><label className="admin-image-upload"><Upload size={16} />Upload award file<input type="file" accept=".pdf,image/*" onChange={(event) => event.target.files?.[0] && uploadAward(event.target.files[0])} /></label>{typeof draft.award_file === 'string' && draft.award_file && <div className="certificate-current"><a href={draft.award_file} target="_blank" rel="noreferrer">View uploaded award</a><button type="button" onClick={() => setField('award_file', '')}>Remove</button></div>}</div>}<div className="admin-actions">{selected && <button className="danger" onClick={remove}>Delete</button>}<button onClick={save}>{selected ? 'Save changes' : 'Create record'}</button></div></section></div>
+          <div className="admin-grid"><section className="admin-list"><h2>Records</h2>{rows.map((row) => <button key={String(row.id)} className={selected?.id === row.id ? 'active' : ''} onClick={() => chooseRow(row)}><strong>{recordTitle(row)}</strong><small>{String(row.category || row.organization || row.institution || row.issuer || row.path || '')}</small></button>)}{!rows.length && <p className="admin-empty">No records yet.</p>}</section><section className="admin-editor"><h2>{selected ? 'Edit record' : 'Create record'}</h2><div className="admin-fields">{visibleFields.map((field) => <AdminField key={field.key} field={field} value={draft[field.key]} onChange={(value) => setField(field.key, value)} />)}</div>{active === 'projects' && <div className="project-image-manager"><div><strong>Project thumbnail</strong><p>Upload and crop the image shown on project cards.</p></div><label className="admin-image-upload"><Upload size={16} />Upload thumbnail<input type="file" accept="image/*" onChange={(event) => event.target.files?.[0] && openCropper(event.target.files[0], 'project-thumbnail')} /></label>{typeof draft.image === 'string' && draft.image && <div className="project-thumbnail-preview"><img src={draft.image} alt="Project thumbnail preview" /><button type="button" onClick={() => setField('image', '')}>Remove thumbnail</button></div>}<div className="project-gallery-manager"><div><strong>Project detail images</strong><p>Upload additional screenshots or photos for the project details page.</p></div><label className="admin-image-upload"><Upload size={16} />Upload detail images<input type="file" accept="image/*" multiple onChange={(event) => { const files = Array.from(event.target.files || []); if (files.length) void uploadProjectImages(files); event.target.value = '' }} /></label><div className="project-gallery-previews">{projectGallery.map((image, index) => <div className="project-gallery-preview" key={`${image}-${index}`}><img src={image} alt={`Project detail ${index + 1}`} /><button type="button" onClick={() => setField('gallery_images', JSON.stringify(projectGallery.filter((_, imageIndex) => imageIndex !== index)))}>Remove</button></div>)}</div></div></div>}{active === 'certifications' && <div className="certificate-upload"><label className="admin-image-upload"><Upload size={16} />Upload certificate<input type="file" accept=".pdf,image/*" onChange={(event) => event.target.files?.[0] && uploadCertificate(event.target.files[0])} /></label>{typeof draft.certificate_file === 'string' && draft.certificate_file && <div className="certificate-current"><a href={draft.certificate_file} target="_blank" rel="noreferrer">View uploaded certificate</a><button type="button" onClick={() => setField('certificate_file', '')}>Remove</button></div>}</div>}{active === 'awards' && <div className="certificate-upload"><label className="admin-image-upload"><Upload size={16} />Upload award file<input type="file" accept=".pdf,image/*" onChange={(event) => event.target.files?.[0] && uploadAward(event.target.files[0])} /></label>{typeof draft.award_file === 'string' && draft.award_file && <div className="certificate-current"><a href={draft.award_file} target="_blank" rel="noreferrer">View uploaded award</a><button type="button" onClick={() => setField('award_file', '')}>Remove</button></div>}</div>}<div className="admin-actions">{selected && <button className="danger" onClick={remove}>Delete</button>}<button onClick={save}>{selected ? 'Save changes' : 'Create record'}</button></div></section></div>
         )}
       </main>
       {cropImage && (
         <div className="crop-modal" role="dialog" aria-modal="true" aria-label="Adjust uploaded image">
           <div className="crop-dialog">
-            <div className="crop-header"><div><span>Image editor</span><h2>Adjust and crop</h2></div><button type="button" onClick={cancelCrop} aria-label="Close">×</button></div>
+            <div className="crop-header"><div><span>Image editor</span><h2>{cropTarget === 'profile' ? 'Adjust profile image' : 'Crop project thumbnail'}</h2></div><button type="button" onClick={cancelCrop} aria-label="Close">×</button></div>
             <div className="crop-workspace">
               <Cropper
                 image={cropImage}
                 crop={crop}
                 zoom={zoom}
-                aspect={active === 'settings' ? 1 : 16 / 10}
-                cropShape={active === 'settings' ? 'round' : 'rect'}
+                aspect={cropTarget === 'profile' ? 1 : 16 / 10}
+                cropShape={cropTarget === 'profile' ? 'round' : 'rect'}
                 showGrid={false}
                 onCropChange={setCrop}
                 onZoomChange={setZoom}
@@ -370,7 +421,7 @@ function AdminField({ field, value, onChange }: { field: Field; value: unknown; 
     return <label className="admin-checkbox"><input type="checkbox" checked={value === 1 || value === true} onChange={(event) => onChange(event.target.checked ? 1 : 0)} /><span>{field.label}</span></label>
   }
   if (field.type === 'textarea') {
-    return <label className="admin-field"><span>{field.label}</span><textarea value={String(value ?? '')} placeholder={field.placeholder} onChange={(event) => onChange(event.target.value)} /></label>
+    return <div className="admin-field rich-text-field"><span>{field.label}</span><RichTextEditor label={field.label} value={String(value ?? '')} onChange={onChange} /></div>
   }
   if (field.type === 'select') {
     return <label className="admin-field"><span>{field.label}</span><select value={String(value ?? '')} onChange={(event) => onChange(event.target.value)}><option value="">Select...</option>{field.options?.map((option) => <option key={option} value={option}>{option}</option>)}</select></label>

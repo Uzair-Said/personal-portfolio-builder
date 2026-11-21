@@ -33,12 +33,15 @@ This app requires cPanel hosting with **Setup Node.js App / Application Manager*
    - `JWT_SECRET` (a long, unique, randomly generated secret)
    - `ADMIN_EMAIL` (your admin email)
    - `ADMIN_PASSWORD` (a unique password of at least 12 characters)
+   - `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, and `SMTP_FROM` (SMTP settings provided by your email host; use a mailbox authorized to send from your domain)
 4. Run `npm install` from the application root using cPanel's terminal or Node.js application interface.
 5. Run `npm run build`.
 6. Restart the Node.js application in cPanel and point the domain or subdomain at the application.
 7. Open `/admin`, sign in with the configured admin credentials, and confirm the public site and uploaded files are working.
 
 The server creates `portfolio.db` on first launch and stores uploaded files in `public/uploads`. Both locations must be writable and must persist across application restarts and deployments. Back up the database and uploads regularly.
+
+The contact form sends submissions to `uzairsaid7@gmail.com` using the configured SMTP mailbox. The visitor's email is set as the reply-to address. Set the SMTP variables in the local `.env` or cPanel environment configuration, then restart the Node.js app. Do not use the recipient address as the SMTP username unless your email provider authorizes it for sending.
 
 The first production launch creates the initial administrator from `ADMIN_EMAIL` and `ADMIN_PASSWORD`. Changing these environment values later does not change an already-created account; use the CMS password-management API or update the administrator record through a secure maintenance process.
 
