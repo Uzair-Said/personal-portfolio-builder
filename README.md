@@ -112,7 +112,7 @@ Never commit `.env`, secrets, database files, or uploaded user content.
 | `npm run preview` | Preview the Vite build |
 | `npm run native:rebuild` | Rebuild the native SQLite dependency |
 
-The project uses Vite 7 rather than Vite 8 because Vite 8's Rolldown/WebAssembly build path can exceed strict shared-hosting memory limits. If cPanel exposes a build memory setting, allocating at least 1 GB is recommended.
+The project uses Vite 6 and TypeScript 5 for compatibility with constrained shared-hosting environments. For cPanel, use Node.js 20 or 22 rather than Node.js 24. If cPanel exposes a build memory setting, allocate at least 1 GB.
 
 ## Project structure
 
