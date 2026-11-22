@@ -17,7 +17,7 @@ A full-stack, customizable portfolio built with React, TypeScript, Vite, Express
 
 ## Requirements
 
-- Node.js 20.19 or newer
+- Node.js 22.5 or newer, within the Node 22 release line
 - npm
 - SMTP credentials for contact form email delivery
 - For cPanel deployment: Node.js Application Manager and persistent writable storage
@@ -110,9 +110,8 @@ Never commit `.env`, secrets, database files, or uploaded user content.
 | `npm run check` | Run lint, TypeScript validation, and the production build |
 | `npm start` | Build the project and start the Express server |
 | `npm run preview` | Preview the Vite build |
-| `npm run native:rebuild` | Rebuild the native SQLite dependency |
 
-The cPanel `npm run build` command uses Esbuild rather than Vite's development bundler, avoiding WebAssembly memory allocation failures on constrained shared hosts. Vite remains available for local development. For cPanel, use Node.js 20 or 22 rather than Node.js 24.
+The cPanel `npm run build` command uses Esbuild rather than Vite's development bundler, avoiding WebAssembly memory allocation failures on constrained shared hosts. Vite remains available for local development. Use Node.js 22.5 or newer within the Node 22 release line.
 
 ## Project structure
 
@@ -146,13 +145,12 @@ Generated directories and runtime files are excluded by `.gitignore`:
 This project requires cPanel **Setup Node.js App / Application Manager** support. It is not a static-only website because it uses a Node.js API, SQLite, authentication, uploads, and SMTP delivery.
 
 1. Clone this repository into the Node.js application's root directory using cPanel Git Version Control.
-2. Create a Node.js application with Node.js 20.19 or newer.
+2. Create a Node.js application with Node.js 22.5 or newer within the Node 22 release line.
 3. Set the application root to the repository and the startup file to `server.cjs`.
 4. Configure all production environment variables in the cPanel application environment.
 5. Run `npm install`.
-6. Run `npm run native:rebuild` if `better-sqlite3` reports a native ABI or binary error.
-7. Run `npm run build`.
-8. Restart the application.
+6. Run `npm run build`.
+7. Restart the application.
 9. Map the domain or subdomain to the Node.js application.
 10. Verify `https://your-domain.example/api/health` returns:
 

@@ -4,7 +4,7 @@ const express = require('express')
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const multer = require('multer')
-const Database = require('better-sqlite3')
+const { DatabaseSync } = require('node:sqlite')
 const path = require('path')
 const fs = require('fs')
 
@@ -24,8 +24,8 @@ if (isProduction && (jwtSecret.length < 32 || !adminEmail || adminPassword.lengt
   throw new Error('Production requires a JWT_SECRET of at least 32 characters, ADMIN_EMAIL, and a unique ADMIN_PASSWORD of at least 12 characters')
 }
 const dbPath = path.join(__dirname, 'portfolio.db')
-const db = new Database(dbPath)
-db.pragma('journal_mode = WAL')
+const db = new DatabaseSync(dbPath)
+db.exec('PRAGMA journal_mode = WAL')
 
 app.use(express.json({ limit: '10mb' }))
 
@@ -276,10 +276,15 @@ function getSettings() {
 
 function setSettings(body) {
   const insert = db.prepare('INSERT INTO settings (key, value) VALUES (?, ?) ON CONFLICT(key) DO UPDATE SET value = excluded.value')
-  const tx = db.transaction((values) => {
+  db.exec('BEGIN')
+  try {
+    const values = body
     for (const [key, value] of Object.entries(values)) insert.run(key, String(value ?? ''))
-  })
-  tx(body)
+    db.exec('COMMIT')
+  } catch (error) {
+    db.exec('ROLLBACK')
+    throw error
+  }
 }
 
 function syncHeroSectionFromSettings(settings) {
