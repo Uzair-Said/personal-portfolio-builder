@@ -105,9 +105,9 @@ Never commit `.env`, secrets, database files, or uploaded user content.
 | `npm run dev` | Start only the Vite frontend |
 | `npm run server` | Start only the Express CMS API |
 | `npm run cms` | Start the frontend and API together |
-| `npm run build` | Type-check and create the production build |
+| `npm run build` | Create the production build with a memory-limited Node process |
 | `npm run lint` | Run the configured linter |
-| `npm run check` | Run lint and production build checks |
+| `npm run check` | Run lint, TypeScript validation, and the production build |
 | `npm start` | Build the project and start the Express server |
 | `npm run preview` | Preview the Vite build |
 | `npm run native:rebuild` | Rebuild the native SQLite dependency |
