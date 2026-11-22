@@ -9,6 +9,7 @@
     "cms": "concurrently \"npm run server\" \"npm run dev\"",
     "build": "tsc -b && vite build",
     "start": "npm run build && node server.cjs",
+    "native:rebuild": "npm rebuild better-sqlite3",
     "lint": "oxlint",
     "preview": "vite preview"
   },

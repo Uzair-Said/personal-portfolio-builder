@@ -30,6 +30,15 @@ db.pragma('journal_mode = WAL')
 app.use(cors())
 app.use(express.json({ limit: '10mb' }))
 
+app.get('/api/health', (_req, res) => {
+  try {
+    db.prepare('SELECT 1').get()
+    res.json({ status: 'ok', database: 'ok' })
+  } catch (error) {
+    res.status(500).json({ status: 'error', database: 'error', message: error.message })
+  }
+})
+
 const publicDir = path.join(__dirname, 'public')
 const uploadDir = path.join(publicDir, 'uploads')
 fs.mkdirSync(uploadDir, { recursive: true })
@@ -417,7 +426,12 @@ if (fs.existsSync(distDir)) {
   app.use((_req, res) => res.sendFile(path.join(distDir, 'index.html')))
 }
 
-app.listen(port, () => {
-  console.log(`Portfolio CMS running at http://localhost:${port}`)
+const server = app.listen(port, '0.0.0.0', () => {
+  console.log(`Portfolio CMS running on port ${port}`)
   console.log(`Admin account: ${adminEmail}`)
+})
+
+server.on('error', (error) => {
+  console.error('Portfolio CMS failed to start:', error)
+  process.exit(1)
 })
