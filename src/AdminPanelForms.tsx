@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useCallback, useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { LayoutDashboard, LogOut, Menu, Settings, BriefcaseBusiness, GraduationCap, Award, BadgeCheck, FolderKanban, ListTree, Wrench, Upload } from 'lucide-react'
 import Cropper from 'react-easy-crop'
@@ -159,7 +159,7 @@ export default function AdminPanelForms() {
   const [zoom, setZoom] = useState(1)
   const [croppedAreaPixels, setCroppedAreaPixels] = useState<Area | null>(null)
 
-  const api = async (url: string, options: RequestInit = {}) => {
+  const api = useCallback(async (url: string, options: RequestInit = {}) => {
     const response = await fetch(url, {
       ...options,
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${token}`, ...(options.headers || {}) },
@@ -174,18 +174,18 @@ export default function AdminPanelForms() {
       throw new Error(body.error || 'Request failed')
     }
     return response.status === 204 ? null : response.json()
-  }
+  }, [token])
 
+  // oxlint-disable react/set-state-in-effect -- CMS data is an asynchronous effect-driven resource.
   useEffect(() => {
     if (!token) return
-    setMessage('')
-    setSelected(null)
     if (active === 'settings') {
       fetch('/api/content').then((response) => response.json()).then((data) => setDraft({ ...templates.settings, ...data.settings }))
     } else {
       api(`/api/admin/${active}`).then((data) => { setRows(data); setDraft({ ...templates[active] }) }).catch((error) => setMessage(error.message))
     }
-  }, [token, active])
+  }, [token, active, api])
+  // oxlint-enable react/set-state-in-effect
 
   const login = async (event: FormEvent) => {
     event.preventDefault()
@@ -357,7 +357,7 @@ export default function AdminPanelForms() {
 
   return (
     <div className="admin-shell">
-      <aside className="admin-sidebar"><div className="admin-brand"><span>US</span><div><strong>Portfolio CMS</strong><small>Uzair Said</small></div></div><nav>{tabs.map((tab) => { const Icon = tab.icon; return <button className={active === tab.key ? 'active' : ''} key={tab.key} onClick={() => setActive(tab.key)}><Icon size={17} />{tab.label}</button> })}</nav><button className="admin-logout" onClick={() => { localStorage.removeItem('cms_token'); setToken('') }}><LogOut size={16} />Sign out</button></aside>
+      <aside className="admin-sidebar"><div className="admin-brand"><span>JL</span><div><strong>Portfolio CMS</strong><small>Jordan Lee</small></div></div><nav>{tabs.map((tab) => { const Icon = tab.icon; return <button className={active === tab.key ? 'active' : ''} key={tab.key} onClick={() => { setMessage(''); setSelected(null); setActive(tab.key) }}><Icon size={17} />{tab.label}</button> })}</nav><button className="admin-logout" onClick={() => { localStorage.removeItem('cms_token'); setToken('') }}><LogOut size={16} />Sign out</button></aside>
       <main className="admin-main"><header className="admin-header"><div><span>Management</span><h1>{tabs.find((tab) => tab.key === active)?.label}</h1></div>{active !== 'settings' && <button className="admin-new" onClick={createDraft}>+ Add new</button>}</header>{message && <div className="admin-message">{message}</div>}
         {active === 'settings' ? (
           <section className="admin-editor admin-editor-wide"><h2>Website settings</h2><p>Update the general content shown throughout the public website.</p><div className="admin-fields">{visibleFields.map((field) => <AdminField key={field.key} field={field} value={draft[field.key]} onChange={(value) => setField(field.key, value)} />)}</div><label className="admin-image-upload"><Upload size={16} />Upload profile image<input type="file" accept="image/*" onChange={(event) => event.target.files?.[0] && openCropper(event.target.files[0], 'profile')} /></label><div className="admin-actions"><button onClick={save}>Save settings</button></div></section>

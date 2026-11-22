@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { NavLink, Route, Routes, useLocation, useParams } from 'react-router-dom'
-import { ArrowRight, ExternalLink, Mail, MapPin, Menu, Printer, X } from 'lucide-react'
+import { ArrowRight, ExternalLink, Mail, MapPin, Menu, Phone, Printer, X } from 'lucide-react'
 import './App.css'
 import { RichText } from './RichText'
 import { hasRichTextMarkup } from './richTextUtils'
@@ -21,9 +21,36 @@ type CmsContent = {
 }
 
 const fallbackContent: CmsContent = {
-  settings: { name: 'Uzair Said', initials: 'US', tagline: 'Computer Science Graduate | IT Support | Web Development', title: 'Practical technology. Reliable support. Meaningful impact.', description: 'I’m Uzair Said, a Computer Science graduate with experience in IT support, web development, and digital service delivery. I solve technical problems, support the people who rely on technology, and build practical tools that make everyday work easier.', resume_summary: 'Computer Science graduate with practical experience in IT support, web development, and digital service delivery. Experienced in troubleshooting hardware and software, supporting enterprise ERP and citizen-service platforms, and building responsive web applications. Brings a user-focused approach, clear communication, and a commitment to reliable, effective solutions.', email: 'uzairsaid7@gmail.com', location: 'Mardan, Pakistan', profile_image: '/Profile pic.png', footer_text: 'IT Support · Web Development · Computer Science' },
+  settings: {
+    name: 'Jordan Lee',
+    initials: 'JL',
+    tagline: 'Full-Stack Developer | UX Enthusiast',
+    title: 'Building thoughtful products for everyday people.',
+    description: 'I am a full-stack developer focused on creating clear, dependable digital experiences. I combine modern web technologies with practical problem-solving to turn ideas into polished applications.',
+    resume_summary: 'Full-stack developer with experience designing responsive web applications, accessible interfaces, and reliable APIs. Comfortable across frontend development, backend integration, databases, and collaborative delivery.',
+    email: 'jordan.lee@example.com',
+    location: 'Seattle, WA',
+    phone: '+1 206 555 0142',
+    linkedin_url: 'https://www.linkedin.com/',
+    github_url: 'https://github.com/',
+    profile_image: '/profile-placeholder.svg',
+    footer_text: 'Full-Stack Development · UI/UX · Web Applications',
+  },
   menu: [{ label: 'Home', path: '/' }, { label: 'Resume', path: '/resume' }, { label: 'Projects', path: '/projects' }, { label: 'Contact', path: '/contact' }],
-  sections: [], projects: [], experience: [], education: [], certifications: [], awards: [], skills: [],
+  sections: [
+    { key: 'hero', eyebrow: 'Full-Stack Developer | UX Enthusiast', title: 'Building thoughtful products for everyday people.', description: 'I am a full-stack developer focused on creating clear, dependable digital experiences.' },
+    { key: 'featured-project', eyebrow: 'Featured project', title: 'A smarter way to manage daily tasks', description: 'A selection of my recent product and engineering work.' },
+    { key: 'about', eyebrow: 'About', title: 'Designing useful experiences from idea to launch.', description: 'I enjoy building accessible interfaces and dependable applications.' },
+  ],
+  projects: [{ id: 1, title: 'Northstar Task Planner', category: 'Productivity Web App', year: '2026', description: 'A responsive task planning application for organizing projects, deadlines, and team priorities.', tech_stack: 'React, TypeScript, Node.js, SQLite, CSS', accent: 'mint', featured: 1, enabled: 1 }],
+  experience: [{ id: 1, role: 'Full-Stack Developer', organization: 'Northwind Digital Studio', location: 'Seattle, WA', start_date: '2024', end_date: 'Present', description: 'Build and maintain responsive web applications, collaborate with designers and stakeholders, and improve API and database reliability.' }],
+  education: [{ id: 1, degree: 'Bachelor of Science in Computer Science', institution: 'Example State University', location: 'Seattle, WA', start_date: '2020', end_date: '2024', description: 'Coursework included software engineering, databases, human-computer interaction, and distributed systems.' }],
+  certifications: [{ id: 1, title: 'Frontend Development Certificate', issuer: 'Example Learning Institute', date: '2025', description: 'Completed an intensive course covering modern frontend engineering and accessibility.' }],
+  awards: [{ id: 1, title: 'Team Innovation Award', issuer: 'Northwind Digital Studio', date: '2025', description: 'Recognized for delivering a new internal planning tool used across the company.' }],
+  skills: [
+    { id: 1, name: 'React', category: 'Frontend' }, { id: 2, name: 'TypeScript', category: 'Frontend' },
+    { id: 3, name: 'Node.js', category: 'Backend' }, { id: 4, name: 'SQLite', category: 'Databases' },
+  ],
 }
 
 function projectSlug(title: string): string {
@@ -43,22 +70,19 @@ function projectPath(project: CmsContent['projects'][number], projects: CmsConte
 
 function Header({ content }: { content: CmsContent }) {
   const [open, setOpen] = useState(false)
-  const location = useLocation()
-
-  useEffect(() => setOpen(false), [location.pathname])
 
   return (
     <header className="site-header">
       <NavLink className="brand" to="/" aria-label="Go to home">
-        <span className="brand-mark">{content.settings.initials || 'US'}</span>
-        <span><strong>{content.settings.name || 'Uzair Said'}</strong><small>{content.settings.tagline || 'Portfolio'}</small></span>
+        <span className="brand-mark">{content.settings.initials || 'JL'}</span>
+        <span><strong>{content.settings.name || 'Jordan Lee'}</strong><small>{content.settings.tagline || 'Portfolio'}</small></span>
       </NavLink>
       <button className="menu-button" onClick={() => setOpen(!open)} aria-label="Toggle navigation">
         {open ? <X size={22} /> : <Menu size={22} />}
       </button>
       <nav className={open ? 'nav open' : 'nav'}>
         {content.menu.map((item) => (
-          <NavLink key={item.path} to={item.path} className={({ isActive }) => isActive ? 'active' : ''}>{item.label}</NavLink>
+          <NavLink key={item.path} to={item.path} onClick={() => setOpen(false)} className={({ isActive }) => isActive ? 'active' : ''}>{item.label}</NavLink>
         ))}
       </nav>
     </header>
@@ -91,16 +115,18 @@ function Home({ content }: { content: CmsContent }) {
               <NavLink className="button secondary" to="/resume">View resume</NavLink>
             </div>
           </div>
-          <div className="hero-visual" aria-label="Uzair Said portrait">
-            <div className="portrait-ring">
-              <div className="portrait"><img src={content.settings.profile_image || '/Profile pic.png'} alt={content.settings.name || 'Profile'} /></div>
+          {content.settings.profile_image && (
+            <div className="hero-visual" aria-label="Profile portrait">
+              <div className="portrait-ring">
+                <div className="portrait"><img src={content.settings.profile_image} alt={content.settings.name || 'Profile'} /></div>
+              </div>
             </div>
-          </div>
+          )}
         </section>
 
         <section className="focus-section">
           <div className="section-heading">
-            <div><span className="eyebrow">{content.sections.find((section) => section.key === 'featured-project')?.eyebrow || 'Featured project'}</span><h2>{content.sections.find((section) => section.key === 'featured-project')?.title || 'Building reliable digital experiences'}</h2></div>
+            <div><span className="eyebrow">{content.sections.find((section) => section.key === 'featured-project')?.eyebrow || 'Featured project'}</span><h2>{content.sections.find((section) => section.key === 'featured-project')?.title || 'Selected work'}</h2></div>
             <NavLink to="/projects">View project <ArrowRight size={16} /></NavLink>
           </div>
           <div className="focus-grid single-project">
@@ -116,7 +142,7 @@ function Home({ content }: { content: CmsContent }) {
 
         <section className="about-strip">
           <span className="eyebrow">{content.sections.find((section) => section.key === 'about')?.eyebrow || 'About this portfolio'}</span>
-          <h2>{content.sections.find((section) => section.key === 'about')?.title || 'Combining technical support with practical software development.'}</h2>
+          <h2>{content.sections.find((section) => section.key === 'about')?.title || 'About me'}</h2>
           <RichText className="rich-text-content" content={content.sections.find((section) => section.key === 'about')?.description || content.settings.description || ''} />
           <NavLink className="text-link" to="/resume">Discover my journey <ArrowRight size={16} /></NavLink>
         </section>
@@ -132,7 +158,7 @@ function Resume({ content }: { content: CmsContent }) {
     return groups
   }, {})
   const currentRole = content.experience.find((item) => (item.end_date || '').toLowerCase() === 'present')
-  const summary = content.settings.resume_summary || 'Computer Science graduate with hands-on experience in web development, enterprise ERP systems, IT support, and digital service delivery.'
+  const summary = content.settings.resume_summary || 'Add a professional summary describing your background, experience, and strengths.'
 
   return (
     <main className="inner-page resume-page">
@@ -140,7 +166,7 @@ function Resume({ content }: { content: CmsContent }) {
         <div className="resume-profile-heading">
           <div>
             <span className="eyebrow">Curriculum vitae</span>
-            <h1>{content.settings.name || 'Your Name'}</h1>
+            <h1>{content.settings.name || 'Jordan Lee'}</h1>
             <p className="resume-tagline">{content.settings.tagline}</p>
           </div>
           <button className="resume-print" type="button" onClick={() => window.print()}><Printer size={16} /> Print / Save PDF</button>
@@ -345,13 +371,82 @@ function Contact({ content }: { content: CmsContent }) {
   }
 
   return (
-    <main className="inner-page contact-page"><PageTitle eyebrow="Get in touch" title="Start a conversation" copy="For IT opportunities, software projects, or professional collaboration." /><div className="contact-layout"><div><h2>Let’s work together</h2><p><Mail size={18} /> {content.settings.email}</p><p>{content.settings.location}</p><div className="social-row"><a href={`mailto:${content.settings.email}`} aria-label="Email">@</a></div></div><form onSubmit={submitContactForm}><label>Name<input name="name" autoComplete="name" maxLength={120} placeholder="Your name" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} required /></label><label>Email<input name="email" type="email" autoComplete="email" maxLength={254} placeholder="you@example.com" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} required /></label><label>Message<textarea name="message" maxLength={10000} placeholder="Tell me about your project" rows={5} value={form.message} onChange={(event) => setForm({ ...form, message: event.target.value })} required /></label><label className="contact-honeypot" aria-hidden="true">Website<input name="website" tabIndex={-1} autoComplete="off" value={form.website} onChange={(event) => setForm({ ...form, website: event.target.value })} /></label>{status && <p className="contact-status" role="status">{status}</p>}<button className="button primary" type="submit" disabled={sending}>{sending ? 'Sending…' : <>Send message <ArrowRight size={18} /></>}</button></form></div></main>
+    <main className="inner-page contact-page">
+      <PageTitle
+        eyebrow="Get in touch"
+        title="Start a conversation"
+        copy="Have a project, opportunity, or idea? Send a message and I’ll get back to you."
+      />
+      <div className="contact-layout">
+        <aside className="contact-details">
+          <span className="eyebrow">Contact information</span>
+          <h2>Let’s work together</h2>
+          <p className="contact-intro">I’m always interested in hearing about thoughtful projects and new opportunities.</p>
+
+          <div className="contact-detail-list">
+            {content.settings.email && (
+              <a className="contact-detail" href={`mailto:${content.settings.email}`}>
+                <span className="contact-detail-icon"><Mail size={20} /></span>
+                <span><small>Email</small><strong>{content.settings.email}</strong></span>
+              </a>
+            )}
+            {content.settings.phone && (
+              <a className="contact-detail" href={`tel:${content.settings.phone.replace(/[^\d+]/g, '')}`}>
+                <span className="contact-detail-icon"><Phone size={20} /></span>
+                <span><small>Phone</small><strong>{content.settings.phone}</strong></span>
+              </a>
+            )}
+            {content.settings.location && (
+              <div className="contact-detail">
+                <span className="contact-detail-icon"><MapPin size={20} /></span>
+                <span><small>Location</small><strong>{content.settings.location}</strong></span>
+              </div>
+            )}
+          </div>
+
+          {(content.settings.linkedin_url || content.settings.github_url) && (
+            <div className="contact-social">
+              <small>Connect</small>
+              <div className="social-row">
+                {content.settings.linkedin_url && (
+                  <a href={content.settings.linkedin_url} target="_blank" rel="noreferrer" aria-label="LinkedIn">
+                    <span>in</span>
+                  </a>
+                )}
+                {content.settings.github_url && (
+                  <a href={content.settings.github_url} target="_blank" rel="noreferrer" aria-label="GitHub">
+                    <span>GH</span>
+                  </a>
+                )}
+              </div>
+            </div>
+          )}
+        </aside>
+
+        <form className="contact-form" onSubmit={submitContactForm}>
+          <div className="contact-form-heading">
+            <span>Send a message</span>
+            <p>Fields marked with * are required.</p>
+          </div>
+          <div className="contact-form-grid">
+            <label>Name *<input name="name" autoComplete="name" maxLength={120} placeholder="Your name" value={form.name} onChange={(event) => setForm({ ...form, name: event.target.value })} required /></label>
+            <label>Email *<input name="email" type="email" autoComplete="email" maxLength={254} placeholder="you@example.com" value={form.email} onChange={(event) => setForm({ ...form, email: event.target.value })} required /></label>
+          </div>
+          <label>Message *<textarea name="message" maxLength={10000} placeholder="Tell me about your project, role, or idea…" value={form.message} onChange={(event) => setForm({ ...form, message: event.target.value })} rows={7} required /></label>
+          <label className="contact-honeypot" aria-hidden="true">Website<input name="website" tabIndex={-1} autoComplete="off" value={form.website} onChange={(event) => setForm({ ...form, website: event.target.value })} /></label>
+          {status && <p className={`contact-status${sending ? '' : ' visible'}`} role="status">{status}</p>}
+          <button className="button primary" type="submit" disabled={sending}>
+            {sending ? 'Sending…' : <>Send message <ArrowRight size={18} /></>}
+          </button>
+        </form>
+      </div>
+    </main>
   )
 }
 
 function Footer({ content }: { content: CmsContent }) {
   return (
-    <footer className="footer"><div className="footer-brand"><span className="brand-mark">{content.settings.initials || 'US'}</span><span><strong>{content.settings.name}</strong><small>{content.settings.tagline}</small></span></div><p>{content.settings.footer_text}</p><div><NavLink to="/privacy">Privacy</NavLink><NavLink to="/terms">Terms</NavLink></div></footer>
+    <footer className="footer"><div className="footer-brand"><span className="brand-mark">{content.settings.initials || 'JL'}</span><span><strong>{content.settings.name}</strong><small>{content.settings.tagline}</small></span></div><p>{content.settings.footer_text}</p></footer>
   )
 }
 
@@ -384,8 +479,6 @@ function App() {
         <Route path="/projects" element={<ProjectsPage content={content} />} />
         <Route path="/projects/:projectSlug" element={<ProjectDetail content={content} />} />
         <Route path="/contact" element={<Contact content={content} />} />
-        <Route path="/privacy" element={<main className="inner-page"><PageTitle eyebrow="Legal" title="Privacy policy" copy="Privacy information will be added here." /></main>} />
-        <Route path="/terms" element={<main className="inner-page"><PageTitle eyebrow="Legal" title="Terms of service" copy="Terms of service will be added here." /></main>} />
       </Routes>
       <Footer content={content} />
     </>

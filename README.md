@@ -1,15 +1,42 @@
-# Uzair Said Portfolio
+# Portfolio CMS
 
-A React, TypeScript, and Vite portfolio with an Express CMS API, SQLite storage, and a browser-based admin panel.
+A full-stack, customizable portfolio built with React, TypeScript, Vite, Express, and SQLite. It includes a responsive public website and an authenticated browser-based CMS.
 
-## Local development
+## Features
 
-1. Install Node.js 20 or newer.
-2. Install dependencies:
+- Responsive portfolio pages for profile, resume, projects, project details, and contact
+- Browser-based administration at `/admin`
+- Editable profile settings, navigation, sections, projects, experience, education, certifications, awards, and skills
+- Rich-text content editing
+- Profile, project, certificate, and award file uploads
+- Print-friendly resume layout
+- Honeypot-protected contact form with SMTP email delivery
+- JWT authentication and password management
+- Fictional seed content for a ready-to-customize first launch
+- SQLite database suitable for small portfolio deployments
+
+## Requirements
+
+- Node.js 20.19 or newer
+- npm
+- SMTP credentials for contact form email delivery
+- For cPanel deployment: Node.js Application Manager and persistent writable storage
+
+## Local setup
+
+1. Clone the repository and install dependencies:
 
    ```sh
    npm install
    ```
+
+2. Copy the environment template:
+
+   ```sh
+   copy .env.example .env
+   ```
+
+   On macOS or Linux, use `cp .env.example .env` instead.
 
 3. Start the frontend and API together:
 
@@ -17,41 +44,151 @@ A React, TypeScript, and Vite portfolio with an Express CMS API, SQLite storage,
    npm run cms
    ```
 
-4. Open `http://localhost:5173`. The admin panel is at `http://localhost:5173/admin`.
+4. Open:
 
-The local development admin account is `admin@portfolio.local` / `ChangeMe123!`. Change these values before exposing the app publicly.
+   - Public website: <http://localhost:5173>
+   - CMS: <http://localhost:5173/admin>
+
+The local development administrator is:
+
+- Email: `admin@portfolio.local`
+- Password: `ChangeMe123!`
+
+Change these values before using the project publicly.
+
+The first launch creates `portfolio.db` with fictional sample content. Use the CMS to replace it with your profile and portfolio data.
+
+## Content customization
+
+Sign in at `/admin`, open **Website settings**, and update:
+
+- Name, initials, title, tagline, and professional summary
+- Email, phone, location, LinkedIn, and GitHub
+- Profile image and footer text
+
+Use the CMS tabs to manage:
+
+- Menu items
+- Homepage sections
+- Projects and project galleries
+- Professional experience
+- Education
+- Certifications and credential files
+- Awards and award files
+- Technical skills
+
+Uploaded images and documents are stored in `public/uploads/` and referenced from SQLite.
+
+## Environment variables
+
+| Variable | Description |
+| --- | --- |
+| `PORT` | API port; defaults to `3001` locally |
+| `NODE_ENV` | Set to `production` for production deployments |
+| `JWT_SECRET` | Long random secret used to sign CMS sessions |
+| `ADMIN_EMAIL` | Initial administrator email |
+| `ADMIN_PASSWORD` | Initial administrator password |
+| `SMTP_HOST` | SMTP server hostname |
+| `SMTP_PORT` | SMTP server port, usually `587` |
+| `SMTP_SECURE` | Set to `true` for implicit TLS, otherwise `false` |
+| `SMTP_USER` | SMTP account username |
+| `SMTP_PASS` | SMTP account password or application password |
+| `SMTP_FROM` | Sender address authorized by your email provider |
+| `CONTACT_RECIPIENT` | Inbox that receives contact form submissions |
+
+Never commit `.env`, secrets, database files, or uploaded user content.
+
+## Available scripts
+
+| Command | Purpose |
+| --- | --- |
+| `npm run dev` | Start only the Vite frontend |
+| `npm run server` | Start only the Express CMS API |
+| `npm run cms` | Start the frontend and API together |
+| `npm run build` | Type-check and create the production build |
+| `npm run lint` | Run the configured linter |
+| `npm run check` | Run lint and production build checks |
+| `npm start` | Build the project and start the Express server |
+| `npm run preview` | Preview the Vite build |
+| `npm run native:rebuild` | Rebuild the native SQLite dependency |
+
+## Project structure
+
+```text
+src/
+  App.tsx                 Public pages and routes
+  App.css                 Public website styles
+  AdminPanelForms.tsx     CMS interface
+  AdminPanel.css          CMS styles
+  RichText.tsx            Sanitized rich-text renderer
+  RichTextEditor.tsx      CMS rich-text editor
+  richTextUtils.ts        Rich-text conversion and sanitization
+  main.tsx                React entry point
+server.cjs                Express API, SQLite, authentication, and uploads
+public/                   Static assets and uploaded files
+vite.config.ts            Vite and development proxy configuration
+dist/                     Generated production build
+portfolio.db              Generated SQLite database
+```
+
+Generated directories and runtime files are excluded by `.gitignore`:
+
+- `dist/`
+- `node_modules/`
+- `portfolio.db`, `portfolio.db-shm`, `portfolio.db-wal`
+- `public/uploads/`
+- `.env`
 
 ## cPanel deployment
 
-This app requires cPanel hosting with **Setup Node.js App / Application Manager** support. It is not a static-only website: the CMS requires a running Node.js process, a writable SQLite database, and persistent upload storage.
+This project requires cPanel **Setup Node.js App / Application Manager** support. It is not a static-only website because it uses a Node.js API, SQLite, authentication, uploads, and SMTP delivery.
 
-1. In cPanel Git Version Control, clone `https://github.com/Uzair-Said/Portfolio.git` directly into the Node.js application's root directory. Keep this directory as a Git working copy; do not deploy over it using File Manager or an archive.
-2. Create a Node.js application using Node.js 20.19 or newer (22.12 or newer is preferred). Set its application root to this repository and its startup file to `server.cjs`. Do not set the startup file to `dist/index.html`.
-3. Add production environment variables in cPanel:
-   - `NODE_ENV=production`
-   - `PORT` (use the value assigned by cPanel, if provided)
-   - `JWT_SECRET` (a long, unique, randomly generated secret)
-   - `ADMIN_EMAIL` (your admin email)
-   - `ADMIN_PASSWORD` (a unique password of at least 12 characters)
-   - `SMTP_HOST`, `SMTP_PORT`, `SMTP_SECURE`, `SMTP_USER`, `SMTP_PASS`, and `SMTP_FROM` (SMTP settings provided by your email host; use a mailbox authorized to send from your domain)
-4. Run `npm install` from the application root using cPanel's terminal or Node.js application interface.
-5. If `better-sqlite3` reports a binary or ABI error, run `npm run native:rebuild`.
-6. Run `npm run build`.
-7. Restart the Node.js application in cPanel, then map or point the domain/subdomain to that Node.js application using cPanel's domain or application route controls. Do not replace the application mapping with a static document-root-only site.
-8. Check `https://your-domain.example/api/health`. It must return `{"status":"ok","database":"ok"}`. Then open `/admin` and confirm the public site and uploaded files.
+1. Clone this repository into the Node.js application's root directory using cPanel Git Version Control.
+2. Create a Node.js application with Node.js 20.19 or newer.
+3. Set the application root to the repository and the startup file to `server.cjs`.
+4. Configure all production environment variables in the cPanel application environment.
+5. Run `npm install`.
+6. Run `npm run native:rebuild` if `better-sqlite3` reports a native ABI or binary error.
+7. Run `npm run build`.
+8. Restart the application.
+9. Map the domain or subdomain to the Node.js application.
+10. Verify `https://your-domain.example/api/health` returns:
 
-If cPanel returns `503`, open the application log and verify that `node server.cjs` is still running. Do not use cPanel's assigned `PORT` manually; the application reads it automatically. The application root must contain `server.cjs`, `package.json`, `node_modules`, and the generated `dist` directory.
+    ```json
+    {"status":"ok","database":"ok"}
+    ```
 
-The server creates `portfolio.db` on first launch and stores uploaded files in `public/uploads`. Both locations must be writable and must persist across application restarts and deployments. Back up the database and uploads regularly.
+The application root must contain:
 
-The contact form sends submissions to `uzairsaid7@gmail.com` using the configured SMTP mailbox. The visitor's email is set as the reply-to address. Set the SMTP variables in the local `.env` or cPanel environment configuration, then restart the Node.js app. Do not use the recipient address as the SMTP username unless your email provider authorizes it for sending.
+- `server.cjs`
+- `package.json`
+- `node_modules/`
+- `dist/`
 
-The first production launch creates the initial administrator from `ADMIN_EMAIL` and `ADMIN_PASSWORD`. Changing these environment values later does not change an already-created account; use the CMS password-management API or update the administrator record through a secure maintenance process.
+The server reads cPanel's assigned `PORT` automatically. Do not configure the startup file as `dist/index.html`.
 
-## Security and deployment notes
+## Database and file persistence
 
-- Never commit `.env`, `portfolio.db`, or user-uploaded files. These are excluded by `.gitignore`.
-- `.env.example` contains placeholders only. Configure real secrets in cPanel's environment settings.
-- The server refuses to start in production if `JWT_SECRET` or `ADMIN_PASSWORD` is missing or still has the development default.
-- For a production website, use HTTPS and restrict access to `/admin` as appropriate for your hosting setup.
-- SQLite is suitable for a small portfolio CMS. Use a managed database and object storage if the content volume or traffic grows.
+SQLite and uploaded files must remain on persistent storage:
+
+- Database: `portfolio.db`
+- Uploads: `public/uploads/`
+
+Back up the database and uploads regularly. Keep both outside version control and restore them together to avoid broken file references.
+
+## Contact form
+
+The contact form sends messages through SMTP to `CONTACT_RECIPIENT`. The visitor's email is used as `replyTo`, allowing replies to reach the visitor directly.
+
+In local development, the form only works after SMTP variables are configured. The server returns `503` when email delivery is not configured.
+
+## Security
+
+- Use unique production values for `JWT_SECRET`, `ADMIN_EMAIL`, and `ADMIN_PASSWORD`.
+- The production server refuses to start if required credentials are missing or use development defaults.
+- Use HTTPS for public deployments.
+- Restrict `/admin` access with hosting-level controls where possible.
+- Back up and protect `portfolio.db` and `public/uploads/`.
+- The first production launch creates the administrator account. Later environment-variable changes do not update an existing account password; change passwords through the CMS.
+
+SQLite is suitable for a small portfolio with low to moderate traffic. Larger deployments may require a managed database and object storage.

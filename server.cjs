@@ -1,7 +1,6 @@
 require('dotenv').config()
 
 const express = require('express')
-const cors = require('cors')
 const bcrypt = require('bcryptjs')
 const jwt = require('jsonwebtoken')
 const multer = require('multer')
@@ -20,6 +19,7 @@ const smtpPort = Number(process.env.SMTP_PORT || 587)
 const smtpUser = process.env.SMTP_USER
 const smtpPass = process.env.SMTP_PASS
 const smtpFrom = process.env.SMTP_FROM || smtpUser
+const contactRecipient = process.env.CONTACT_RECIPIENT || smtpUser
 if (isProduction && (jwtSecret.length < 32 || !adminEmail || adminPassword.length < 12 || adminPassword === 'ChangeMe123!')) {
   throw new Error('Production requires a JWT_SECRET of at least 32 characters, ADMIN_EMAIL, and a unique ADMIN_PASSWORD of at least 12 characters')
 }
@@ -27,7 +27,6 @@ const dbPath = path.join(__dirname, 'portfolio.db')
 const db = new Database(dbPath)
 db.pragma('journal_mode = WAL')
 
-app.use(cors())
 app.use(express.json({ limit: '10mb' }))
 
 app.get('/api/health', (_req, res) => {
@@ -167,19 +166,30 @@ function seedSchema() {
   const settingCount = db.prepare('SELECT COUNT(*) AS count FROM settings').get().count
   if (!settingCount) {
     const settings = {
-      name: 'Uzair Said',
-      initials: 'US',
-      tagline: 'Computer Science Graduate | IT Support | Web Development',
-      title: 'Practical technology. Reliable support. Meaningful impact.',
-      description: 'I’m Uzair Said, a Computer Science graduate with experience in IT support, web development, and digital service delivery. I solve technical problems, support the people who rely on technology, and build practical tools that make everyday work easier.',
-      resume_summary: 'Computer Science graduate with practical experience in IT support, web development, and digital service delivery. Experienced in troubleshooting hardware and software, supporting enterprise ERP and citizen-service platforms, and building responsive web applications. Brings a user-focused approach, clear communication, and a commitment to reliable, effective solutions.',
-      email: 'uzairsaid7@gmail.com',
-      location: 'Mardan, Pakistan',
-      profile_image: '/Profile pic.png',
-      footer_text: 'IT Support · Web Development · Computer Science',
+      name: 'Jordan Lee',
+      initials: 'JL',
+      tagline: 'Full-Stack Developer | UX Enthusiast',
+      title: 'Building thoughtful products for everyday people.',
+      description: 'I am a full-stack developer focused on creating clear, dependable digital experiences. I combine modern web technologies with practical problem-solving to turn ideas into polished applications.',
+      resume_summary: 'Full-stack developer with experience designing responsive web applications, accessible interfaces, and reliable APIs. Comfortable across frontend development, backend integration, databases, and collaborative delivery.',
+      email: 'jordan.lee@example.com',
+      location: 'Seattle, WA',
+      phone: '+1 206 555 0142',
+      linkedin_url: 'https://www.linkedin.com/',
+      github_url: 'https://github.com/',
+      profile_image: '/profile-placeholder.svg',
+      footer_text: 'Full-Stack Development · UI/UX · Web Applications',
     }
     const insert = db.prepare('INSERT INTO settings (key, value) VALUES (?, ?)')
     for (const [key, value] of Object.entries(settings)) insert.run(key, value)
+  }
+  else {
+    const insertMissing = db.prepare('INSERT OR IGNORE INTO settings (key, value) VALUES (?, ?)')
+    for (const [key, value] of Object.entries({
+      phone: '+1 206 555 0142',
+      linkedin_url: 'https://www.linkedin.com/',
+      github_url: 'https://github.com/',
+    })) insertMissing.run(key, value)
   }
 
   if (!db.prepare('SELECT COUNT(*) AS count FROM menu_items').get().count) {
@@ -189,17 +199,17 @@ function seedSchema() {
 
   if (!db.prepare('SELECT COUNT(*) AS count FROM sections').get().count) {
     const insert = db.prepare('INSERT INTO sections (key, eyebrow, title, description, content, position) VALUES (?, ?, ?, ?, ?, ?)')
-    insert.run('hero', 'Computer Science Graduate | IT Support | Web Development', 'Practical technology. Reliable support. Meaningful impact.', 'I’m Uzair Said, a Computer Science graduate with experience in IT support, web development, and digital service delivery. I solve technical problems, support the people who rely on technology, and build practical tools that make everyday work easier.', '', 1)
-    insert.run('featured-project', 'Featured project', 'Building reliable digital experiences', 'A selection of my software project work.', '', 2)
-    insert.run('about', 'About this portfolio', 'Combining technical support with practical software development.', 'My experience covers hardware and software troubleshooting, citizen-facing digital platforms, React development, and cloud-enabled application projects.', '', 3)
+    insert.run('hero', 'Full-Stack Developer | UX Enthusiast', 'Building thoughtful products for everyday people.', 'I am a full-stack developer focused on creating clear, dependable digital experiences. I combine modern web technologies with practical problem-solving to turn ideas into polished applications.', '', 1)
+    insert.run('featured-project', 'Featured project', 'A smarter way to manage daily tasks', 'A selection of my recent product and engineering work.', '', 2)
+    insert.run('about', 'About', 'Designing useful experiences from idea to launch.', 'My work spans interface design, application development, API integration, and continuous improvement. I enjoy collaborating with teams and making complex workflows feel simple.', '', 3)
   }
 
   if (!db.prepare('SELECT COUNT(*) AS count FROM projects').get().count) {
     db.prepare(`INSERT INTO projects (title, category, year, description, tech_stack, accent, position, featured)
       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`).run(
-      'Shop Swift — E-Commerce Platform', 'React & Firebase', '2025',
-      'A full-featured e-commerce application for premium tech retail.',
-      'React.js, Firebase Realtime Database, Auth0, React Router, JavaScript, Bootstrap',
+      'Northstar Task Planner', 'Productivity Web App', '2026',
+      'A responsive task planning application for organizing projects, deadlines, and team priorities.',
+      'React, TypeScript, Node.js, SQLite, CSS',
       'mint', 1, 1,
     )
   }
@@ -207,39 +217,44 @@ function seedSchema() {
   if (!db.prepare('SELECT COUNT(*) AS count FROM experience').get().count) {
     db.prepare(`INSERT INTO experience (role, organization, location, start_date, end_date, description, position)
       VALUES (?, ?, ?, ?, ?, ?, ?)`).run(
-      'IT Support Intern', 'Citizen Facilitation Centre (CFC)', 'Mardan, Pakistan',
-      '04/08/2025', 'Present',
-      'Maintained hardware and software systems, resolved network and application issues, and guided staff and citizens through digital public-service portals.', 1,
+      'Full-Stack Developer', 'Northwind Digital Studio', 'Seattle, WA',
+      '2024', 'Present',
+      'Build and maintain responsive web applications, collaborate with designers and stakeholders, and improve API and database reliability.',
+      1,
     )
   }
 
   if (!db.prepare('SELECT COUNT(*) AS count FROM education').get().count) {
     db.prepare(`INSERT INTO education (degree, institution, location, start_date, end_date, description, position)
       VALUES (?, ?, ?, ?, ?, ?, ?)`).run(
-      'Bachelor of Computer Science (Honours)', 'Abdul Wali Khan University Mardan', 'Mardan, Pakistan',
-      '04/10/2021', '28/07/2025', 'Honours degree in Computer Science.', 1,
+      'Bachelor of Science in Computer Science', 'Example State University', 'Seattle, WA',
+      '2020', '2024', 'Coursework included software engineering, databases, human-computer interaction, and distributed systems.', 1,
     )
   }
 
   if (!db.prepare('SELECT COUNT(*) AS count FROM certifications').get().count) {
     db.prepare(`INSERT INTO certifications (title, issuer, date, description, position)
       VALUES (?, ?, ?, ?, ?)`).run(
-      'Generative AI Training Course — Top Performer Certificate', 'IdeaGist', '20/12/2025', 'Generative AI training course completed online.', 1,
+      'Frontend Development Certificate', 'Example Learning Institute', '2025', 'Completed an intensive course covering modern frontend engineering and accessibility.', 1,
     )
   }
 
   if (!db.prepare('SELECT COUNT(*) AS count FROM awards').get().count) {
     db.prepare(`INSERT INTO awards (title, issuer, date, description, position)
       VALUES (?, ?, ?, ?, ?)`).run(
-      'Career Finder Tournament Winner', 'AWS Cloud Club AWKUM', '2025', 'Project-based tournament winner.', 1,
+      'Team Innovation Award', 'Northwind Digital Studio', '2025', 'Recognized for delivering a new internal planning tool used across the company.', 1,
     )
   }
 
   if (!db.prepare('SELECT COUNT(*) AS count FROM skills').get().count) {
     const insert = db.prepare('INSERT INTO skills (name, category, position) VALUES (?, ?, ?)')
     ;[
-      ['Microsoft Office', 'Tools', 1], ['Python', 'Programming', 2], ['SQL', 'Programming', 3],
-      ['LaTeX', 'Tools', 4], ['React.js', 'Frontend', 5], ['Firebase', 'Backend', 6], ['Auth0', 'Authentication', 7],
+      ['React', 'Frontend', 1],
+      ['TypeScript', 'Frontend', 2],
+      ['Node.js', 'Backend', 3],
+      ['SQLite', 'Databases', 4],
+      ['Git', 'Tools', 5],
+      ['Figma', 'Design', 6],
     ].forEach((item) => insert.run(...item))
   }
 }
@@ -332,7 +347,7 @@ app.post('/api/contact', async (req, res) => {
     return res.status(400).json({ error: 'Enter a valid email address' })
   }
   if (!message || message.length > 10000) return res.status(400).json({ error: 'Message is required and must be 10,000 characters or fewer' })
-  if (!smtpHost || !smtpUser || !smtpPass || !smtpFrom || !Number.isInteger(smtpPort) || smtpPort < 1 || smtpPort > 65535) {
+  if (!smtpHost || !smtpUser || !smtpPass || !smtpFrom || !contactRecipient || !Number.isInteger(smtpPort) || smtpPort < 1 || smtpPort > 65535) {
     return res.status(503).json({ error: 'Email delivery is not configured. Please contact the site owner directly.' })
   }
 
@@ -346,7 +361,7 @@ app.post('/api/contact', async (req, res) => {
     })
     await transporter.sendMail({
       from: smtpFrom,
-      to: 'uzairsaid7@gmail.com',
+      to: contactRecipient,
       replyTo: { name, address: email },
       subject: `Portfolio contact from ${name}`,
       text: `Name: ${name}\nEmail: ${email}\n\n${message}`,
@@ -380,13 +395,22 @@ app.put('/api/settings', requireAuth, (req, res) => {
 })
 
 const crudTables = ['menu_items', 'sections', 'projects', 'experience', 'education', 'certifications', 'awards', 'skills']
+const crudFields = {
+  menu_items: ['label', 'path', 'position', 'enabled'],
+  sections: ['key', 'eyebrow', 'title', 'description', 'content', 'position', 'enabled'],
+  projects: ['title', 'category', 'year', 'description', 'tech_stack', 'image', 'gallery_images', 'url', 'accent', 'position', 'featured', 'enabled'],
+  experience: ['role', 'organization', 'location', 'start_date', 'end_date', 'description', 'position', 'enabled'],
+  education: ['degree', 'institution', 'location', 'start_date', 'end_date', 'description', 'position', 'enabled'],
+  certifications: ['title', 'issuer', 'date', 'description', 'certificate_file', 'credential_url', 'position', 'enabled'],
+  awards: ['title', 'issuer', 'date', 'description', 'award_file', 'position', 'enabled'],
+  skills: ['name', 'category', 'level', 'position', 'enabled'],
+}
 for (const table of crudTables) {
   app.get(`/api/admin/${table}`, requireAuth, (_req, res) => {
     res.json(db.prepare(`SELECT * FROM ${table} ORDER BY position ASC, id ASC`).all())
   })
   app.post(`/api/admin/${table}`, requireAuth, (req, res) => {
-    const data = { ...req.body }
-    delete data.id
+    const data = Object.fromEntries(Object.entries(req.body).filter(([key]) => crudFields[table].includes(key)))
     const keys = Object.keys(data)
     if (!keys.length) return res.status(400).json({ error: 'No fields supplied' })
     const sql = `INSERT INTO ${table} (${keys.join(', ')}) VALUES (${keys.map(() => '?').join(', ')})`
@@ -396,8 +420,7 @@ for (const table of crudTables) {
     res.status(201).json(row)
   })
   app.put(`/api/admin/${table}/:id`, requireAuth, (req, res) => {
-    const data = { ...req.body }
-    delete data.id
+    const data = Object.fromEntries(Object.entries(req.body).filter(([key]) => crudFields[table].includes(key)))
     const keys = Object.keys(data)
     if (!keys.length) return res.status(400).json({ error: 'No fields supplied' })
     const sql = `UPDATE ${table} SET ${keys.map((key) => `${key} = ?`).join(', ')} WHERE id = ?`
