@@ -24,6 +24,9 @@ const fallbackContent: CmsContent = {
   settings: {
     name: 'Jordan Lee',
     initials: 'JL',
+    site_title: 'Jordan Lee — Developer Portfolio',
+    favicon_url: '/favicon.svg',
+    logo_url: '',
     tagline: 'Full-Stack Developer | UX Enthusiast',
     title: 'Building thoughtful products for everyday people.',
     description: 'I am a full-stack developer focused on creating clear, dependable digital experiences. I combine modern web technologies with practical problem-solving to turn ideas into polished applications.',
@@ -74,7 +77,9 @@ function Header({ content }: { content: CmsContent }) {
   return (
     <header className="site-header">
       <NavLink className="brand" to="/" aria-label="Go to home">
-        <span className="brand-mark">{content.settings.initials || 'JL'}</span>
+        {content.settings.logo_url
+          ? <span className="brand-mark brand-logo"><img src={content.settings.logo_url} alt="" /></span>
+          : <span className="brand-mark">{content.settings.initials || 'JL'}</span>}
         <span><strong>{content.settings.name || 'Jordan Lee'}</strong><small>{content.settings.tagline || 'Portfolio'}</small></span>
       </NavLink>
       <button className="menu-button" onClick={() => setOpen(!open)} aria-label="Toggle navigation">
@@ -446,7 +451,7 @@ function Contact({ content }: { content: CmsContent }) {
 
 function Footer({ content }: { content: CmsContent }) {
   return (
-    <footer className="footer"><div className="footer-brand"><span className="brand-mark">{content.settings.initials || 'JL'}</span><span><strong>{content.settings.name}</strong><small>{content.settings.tagline}</small></span></div><p>{content.settings.footer_text}</p></footer>
+    <footer className="footer"><div className="footer-brand">{content.settings.logo_url ? <span className="brand-mark brand-logo"><img src={content.settings.logo_url} alt="" /></span> : <span className="brand-mark">{content.settings.initials || 'JL'}</span>}<span><strong>{content.settings.name}</strong><small>{content.settings.tagline}</small></span></div><p>{content.settings.footer_text}</p></footer>
   )
 }
 
@@ -456,9 +461,31 @@ function App() {
   useEffect(() => {
     fetch('/api/content')
       .then((response) => response.ok ? response.json() : Promise.reject())
-      .then((data) => setContent({ ...fallbackContent, ...data }))
+      .then((data) => setContent({ ...fallbackContent, ...data, settings: { ...fallbackContent.settings, ...data.settings } }))
       .catch(() => undefined)
   }, [])
+
+  useEffect(() => {
+    const siteTitle = content.settings.site_title || content.settings.name || 'Portfolio'
+    document.title = siteTitle
+
+    const faviconUrl = content.settings.favicon_url
+    if (faviconUrl) {
+      let favicon = document.querySelector<HTMLLinkElement>('link[rel="icon"]')
+      if (!favicon) {
+        favicon = document.createElement('link')
+        favicon.rel = 'icon'
+        document.head.appendChild(favicon)
+      }
+      favicon.href = faviconUrl
+      const faviconExtension = faviconUrl.toLowerCase().split('?')[0]
+      favicon.type = faviconExtension.endsWith('.svg')
+        ? 'image/svg+xml'
+        : faviconExtension.endsWith('.png')
+          ? 'image/png'
+          : 'image/x-icon'
+    }
+  }, [content.settings.site_title, content.settings.name, content.settings.favicon_url])
 
   const location = useLocation()
 

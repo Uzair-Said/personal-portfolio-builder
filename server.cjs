@@ -168,6 +168,9 @@ function seedSchema() {
     const settings = {
       name: 'Jordan Lee',
       initials: 'JL',
+      site_title: 'Jordan Lee — Developer Portfolio',
+      favicon_url: '/favicon.svg',
+      logo_url: '',
       tagline: 'Full-Stack Developer | UX Enthusiast',
       title: 'Building thoughtful products for everyday people.',
       description: 'I am a full-stack developer focused on creating clear, dependable digital experiences. I combine modern web technologies with practical problem-solving to turn ideas into polished applications.',
@@ -189,6 +192,9 @@ function seedSchema() {
       phone: '+1 206 555 0142',
       linkedin_url: 'https://www.linkedin.com/',
       github_url: 'https://github.com/',
+      site_title: 'Jordan Lee — Developer Portfolio',
+      favicon_url: '/favicon.svg',
+      logo_url: '',
     })) insertMissing.run(key, value)
   }
 
