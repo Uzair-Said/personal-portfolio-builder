@@ -39,7 +39,7 @@ const fallbackContent: CmsContent = {
     profile_image: '/profile-placeholder.svg',
     footer_text: 'Full-Stack Development · UI/UX · Web Applications',
   },
-  menu: [{ label: 'Home', path: '/' }, { label: 'Resume', path: '/resume' }, { label: 'Projects', path: '/projects' }, { label: 'Certificates', path: '/certificates' }, { label: 'Contact', path: '/contact' }],
+  menu: [{ label: 'Home', path: '/' }, { label: 'Resume', path: '/resume' }, { label: 'Projects', path: '/projects' }, { label: 'Contact', path: '/contact' }],
   sections: [
     { key: 'hero', eyebrow: 'Full-Stack Developer | UX Enthusiast', title: 'Building thoughtful products for everyday people.', description: 'I am a full-stack developer focused on creating clear, dependable digital experiences.' },
     { key: 'featured-project', eyebrow: 'Featured project', title: 'A smarter way to manage daily tasks', description: 'A selection of my recent product and engineering work.' },
@@ -73,9 +73,6 @@ function projectPath(project: CmsContent['projects'][number], projects: CmsConte
 
 function Header({ content }: { content: CmsContent }) {
   const [open, setOpen] = useState(false)
-  const menu = content.menu.some((item) => item.path === '/certificates')
-    ? content.menu
-    : [...content.menu, { label: 'Certificates', path: '/certificates' }]
 
   return (
     <header className="site-header">
@@ -89,7 +86,7 @@ function Header({ content }: { content: CmsContent }) {
         {open ? <X size={22} /> : <Menu size={22} />}
       </button>
       <nav className={open ? 'nav open' : 'nav'}>
-        {menu.map((item) => (
+        {content.menu.map((item) => (
           <NavLink key={item.path} to={item.path} onClick={() => setOpen(false)} className={({ isActive }) => isActive ? 'active' : ''}>{item.label}</NavLink>
         ))}
       </nav>

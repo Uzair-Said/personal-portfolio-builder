@@ -47,7 +47,7 @@ const fields: Record<string, Field[]> = {
   ],
   menu_items: [
     { key: 'label', label: 'Menu label' },
-    { key: 'path', label: 'Page link', placeholder: '/about' },
+    { key: 'path', label: 'Page link', placeholder: '/certificates' },
     { key: 'position', label: 'Display position', type: 'number' },
     { key: 'enabled', label: 'Show in navigation', type: 'checkbox' },
   ],
