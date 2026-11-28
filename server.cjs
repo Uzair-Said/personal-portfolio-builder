@@ -72,6 +72,10 @@ function seedSchema() {
       position INTEGER NOT NULL DEFAULT 0,
       enabled INTEGER NOT NULL DEFAULT 1
     );
+    CREATE TABLE IF NOT EXISTS app_migrations (
+      name TEXT PRIMARY KEY,
+      applied_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+    );
     CREATE TABLE IF NOT EXISTS sections (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       key TEXT UNIQUE NOT NULL,
@@ -200,7 +204,17 @@ function seedSchema() {
 
   if (!db.prepare('SELECT COUNT(*) AS count FROM menu_items').get().count) {
     const insert = db.prepare('INSERT INTO menu_items (label, path, position) VALUES (?, ?, ?)')
-    ;[['Home', '/', 1], ['Resume', '/resume', 2], ['Projects', '/projects', 3], ['Contact', '/contact', 4]].forEach((item) => insert.run(...item))
+    ;[['Home', '/', 1], ['Resume', '/resume', 2], ['Projects', '/projects', 3], ['Certificates', '/certificates', 4], ['Contact', '/contact', 5]].forEach((item) => insert.run(...item))
+  }
+
+  const certificateMenuMigration = 'certificates-menu-item'
+  if (!db.prepare('SELECT 1 FROM app_migrations WHERE name = ?').get(certificateMenuMigration)) {
+    const certificateMenuItem = db.prepare('SELECT 1 FROM menu_items WHERE path = ?').get('/certificates')
+    if (!certificateMenuItem) {
+      const position = db.prepare('SELECT COALESCE(MAX(position), 0) + 1 AS position FROM menu_items').get().position
+      db.prepare('INSERT INTO menu_items (label, path, position) VALUES (?, ?, ?)').run('Certificates', '/certificates', position)
+    }
+    db.prepare('INSERT INTO app_migrations (name) VALUES (?)').run(certificateMenuMigration)
   }
 
   if (!db.prepare('SELECT COUNT(*) AS count FROM sections').get().count) {
