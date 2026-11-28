@@ -483,16 +483,31 @@ function Footer({ content }: { content: CmsContent }) {
 }
 
 function App() {
-  const [content, setContent] = useState<CmsContent>(fallbackContent)
+  const [content, setContent] = useState<CmsContent | null>(null)
+  const [contentLoadError, setContentLoadError] = useState(false)
 
   useEffect(() => {
+    let cancelled = false
     fetch('/api/content')
-      .then((response) => response.ok ? response.json() : Promise.reject())
-      .then((data) => setContent({ ...fallbackContent, ...data, settings: { ...fallbackContent.settings, ...data.settings } }))
-      .catch(() => undefined)
+      .then((response) => {
+        if (!response.ok) throw new Error(`Content request failed with status ${response.status}`)
+        return response.json()
+      })
+      .then((data) => {
+        if (!cancelled) setContent({ ...fallbackContent, ...data, settings: { ...fallbackContent.settings, ...data.settings } })
+      })
+      .catch((error: unknown) => {
+        if (cancelled) return
+        console.error('Unable to load portfolio content:', error)
+        setContentLoadError(true)
+      })
+    return () => {
+      cancelled = true
+    }
   }, [])
 
   useEffect(() => {
+    if (!content) return
     const siteTitle = content.settings.site_title || content.settings.name || 'Portfolio'
     document.title = siteTitle
 
@@ -512,7 +527,7 @@ function App() {
           ? 'image/png'
           : 'image/x-icon'
     }
-  }, [content.settings.site_title, content.settings.name, content.settings.favicon_url])
+  }, [content])
 
   const location = useLocation()
 
@@ -522,6 +537,14 @@ function App() {
 
   if (location.pathname.startsWith('/admin')) {
     return <Suspense fallback={<div className="admin-loading">Loading admin panel...</div>}><AdminPanel /></Suspense>
+  }
+
+  if (!content) {
+    return (
+      <main className="site-content-state" role={contentLoadError ? 'alert' : 'status'}>
+        <p>{contentLoadError ? 'Portfolio content could not be loaded. Please try again later.' : 'Loading portfolio...'}</p>
+      </main>
+    )
   }
 
   return (

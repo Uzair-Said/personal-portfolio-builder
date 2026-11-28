@@ -57,6 +57,17 @@ body {
 
 #root { min-height: 100vh; }
 
+.site-content-state {
+  min-height: 100vh;
+  display: grid;
+  place-items: center;
+  padding: 24px;
+  color: #5d6d67;
+  text-align: center;
+}
+
+.site-content-state p { margin: 0; }
+
 .site-header {
   position: sticky;
   top: 0;
