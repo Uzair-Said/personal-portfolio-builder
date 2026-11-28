@@ -39,7 +39,7 @@ const fallbackContent: CmsContent = {
     profile_image: '/profile-placeholder.svg',
     footer_text: 'Full-Stack Development · UI/UX · Web Applications',
   },
-  menu: [{ label: 'Home', path: '/' }, { label: 'Resume', path: '/resume' }, { label: 'Projects', path: '/projects' }, { label: 'Contact', path: '/contact' }],
+  menu: [{ label: 'Home', path: '/' }, { label: 'Resume', path: '/resume' }, { label: 'Projects', path: '/projects' }, { label: 'Certificates', path: '/certificates' }, { label: 'Contact', path: '/contact' }],
   sections: [
     { key: 'hero', eyebrow: 'Full-Stack Developer | UX Enthusiast', title: 'Building thoughtful products for everyday people.', description: 'I am a full-stack developer focused on creating clear, dependable digital experiences.' },
     { key: 'featured-project', eyebrow: 'Featured project', title: 'A smarter way to manage daily tasks', description: 'A selection of my recent product and engineering work.' },
@@ -73,6 +73,9 @@ function projectPath(project: CmsContent['projects'][number], projects: CmsConte
 
 function Header({ content }: { content: CmsContent }) {
   const [open, setOpen] = useState(false)
+  const menu = content.menu.some((item) => item.path === '/certificates')
+    ? content.menu
+    : [...content.menu, { label: 'Certificates', path: '/certificates' }]
 
   return (
     <header className="site-header">
@@ -86,7 +89,7 @@ function Header({ content }: { content: CmsContent }) {
         {open ? <X size={22} /> : <Menu size={22} />}
       </button>
       <nav className={open ? 'nav open' : 'nav'}>
-        {content.menu.map((item) => (
+        {menu.map((item) => (
           <NavLink key={item.path} to={item.path} onClick={() => setOpen(false)} className={({ isActive }) => isActive ? 'active' : ''}>{item.label}</NavLink>
         ))}
       </nav>
@@ -279,6 +282,33 @@ function ResumeDescription({ text }: { text: string }) {
     return items
   }, [])
   return <ul className="resume-responsibilities">{bullets.map((line, index) => <li key={`${index}-${line}`}>{line}</li>)}</ul>
+}
+
+function CertificatesPage({ content }: { content: CmsContent }) {
+  return (
+    <main className="inner-page certificates-page">
+      <div className="projects-intro">
+        <PageTitle eyebrow="Credentials" title="Certificates" copy="Professional courses and certifications completed throughout my learning and development journey." />
+        <span className="project-count">{String(content.certifications.length).padStart(2, '0')} certificates</span>
+      </div>
+      <div className="certificates-grid">
+        {content.certifications.map((item) => (
+          <article className="certificate-card" key={item.id}>
+            <span className="eyebrow">Certificate</span>
+            <h2>{item.title}</h2>
+            <p className="certificate-issuer">{item.issuer}{item.date ? ` · ${item.date}` : ''}</p>
+            {item.description && <RichText className="certificate-description rich-text-content" content={item.description} />}
+            {(item.certificate_file || item.credential_url) && (
+              <a className="certificate-link" href={item.certificate_file || item.credential_url} target="_blank" rel="noreferrer">
+                View certificate <ArrowRight size={14} />
+              </a>
+            )}
+          </article>
+        ))}
+        {!content.certifications.length && <p className="projects-empty">Certificates will be added here soon.</p>}
+      </div>
+    </main>
+  )
 }
 
 function ProjectsPage({ content }: { content: CmsContent }) {
@@ -505,6 +535,7 @@ function App() {
         <Route path="/resume" element={<Resume content={content} />} />
         <Route path="/projects" element={<ProjectsPage content={content} />} />
         <Route path="/projects/:projectSlug" element={<ProjectDetail content={content} />} />
+        <Route path="/certificates" element={<CertificatesPage content={content} />} />
         <Route path="/contact" element={<Contact content={content} />} />
       </Routes>
       <Footer content={content} />
